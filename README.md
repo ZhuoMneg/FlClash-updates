@@ -1,5 +1,5 @@
 # FlClash
 
-Windows update packages. Downloads are published under Releases after cloud checks and builds pass.
+Source and future Windows releases have moved to [ZhuoMneg/FlClash](https://github.com/ZhuoMneg/FlClash).
 
-Upstream project: https://github.com/chen08209/FlClash
+This temporary update repository is retired. Its dedicated deployment key has been revoked.
