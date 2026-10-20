@@ -1,0 +1,38 @@
+name: Publish FlClash update
+
+on:
+  push:
+    branches: ['deliveries/**']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: public-update-channel
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate delivered package
+        run: python3 update_channel.py validate .
+      - name: Publish package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tag=$(python3 update_channel.py validate .)
+          file=$(python3 -c 'import json; print(json.load(open("delivery.json"))["file"])')
+          if ! gh release view "$tag" --repo "$TARGET_REPO" >/dev/null 2>&1; then
+            latest=$(gh api "repos/$TARGET_REPO/releases/latest" --jq .tag_name 2>/dev/null || true)
+            is_latest=true
+            if [ -n "$latest" ] && ! python3 update_channel.py newer "$tag" "$latest"; then is_latest=false; fi
+            printf 'FlClash %s\n\nWindows x64. Verify the download with SHA256SUMS.txt.\n' "$tag" > release-notes.txt
+            gh release create "$tag" "$file" SHA256SUMS.txt --repo "$TARGET_REPO" --target main --latest="$is_latest" --title "FlClash $tag" --notes-file release-notes.txt
+          fi
+          gh api --method DELETE "repos/$TARGET_REPO/git/refs/heads/$GITHUB_REF_NAME"
